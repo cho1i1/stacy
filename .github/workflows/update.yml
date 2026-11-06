@@ -1,0 +1,38 @@
+name: Update Stacy data
+
+on:
+  schedule:
+    - cron: '*/15 13-21 * * 1-5'
+  push:
+    branches: [main]
+    paths:
+      - watchlist.md
+      - stacy-data.json
+      - update-data.ps1
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pull Yahoo Finance data
+        shell: pwsh
+        run: ./update-data.ps1
+      - name: Save data.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Update data"
+          git pull --rebase origin main
+          git push
