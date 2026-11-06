@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Stacy">
+<meta name="robots" content="noindex">
+<title>Stacy</title>
+<style>
+:root{color-scheme:light dark;--bg:#f7f6f2;--card:#fff;--line:#d8d6cd;--text:#1f1e1c;--sub:#5f5e5a;--muted:#6f6e68;--chip:#f7f6f2;--danger:#a32d2d}
+@media(prefers-color-scheme:dark){:root{--bg:#191917;--card:#242422;--line:#45443f;--text:#f1efe8;--sub:#c2c0b6;--muted:#a5a39a;--chip:#191917;--danger:#f09595}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 28px max(14px,env(safe-area-inset-left))}
+main{max-width:900px;margin:0 auto}
+h1{font-size:22px;font-weight:600;margin:0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.sub{color:var(--sub);font-size:13px}
+button,.btn{font:inherit;font-size:14px;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:8px}
+.ttl{font-weight:600}
+.band{display:grid;grid-template-columns:120px 1fr;gap:12px}
+@media(max-width:600px){.band{grid-template-columns:1fr;gap:8px}}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.tk{font:inherit;font-weight:600;font-size:14px;min-height:38px;min-width:54px;padding:0 9px;background:var(--chip);border:1px solid var(--line);border-radius:7px}
+.tk.sel{outline:2px solid var(--text);outline-offset:1px}
+.days{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:12px}
+.day b{display:block;font-weight:400;color:var(--sub);font-size:13px;margin-bottom:4px}
+.day .chips{align-items:center}
+.est{color:var(--muted);font-size:12px}
+.pair{display:inline-flex;align-items:center;gap:4px}
+#detail{position:sticky;top:8px;z-index:2;display:none;font-size:14px;border-width:2px}
+.foot{color:var(--muted);font-size:12px;margin-top:10px}
+#error{display:none;color:var(--danger);border-color:var(--danger)}
+</style>
+</head>
+<body>
+<main>
+<div class="top">
+<div><h1>Stacy</h1><div class="sub" id="meta">Loading...</div></div>
+<button id="refresh">Refresh</button>
+</div>
+<div class="card" id="error" role="alert"></div>
+<div class="card" id="detail" role="status"></div>
+<div id="rows"></div>
+<div class="foot" id="foot"></div>
+<p style="margin-top:12px"><a class="btn" id="edit" href="#" style="display:none" target="_blank" rel="noopener">Edit watch list on GitHub</a></p>
+</main>
+<script>
+const FLAT = 0.25, MAX = 10;
+const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+let DATA = null, chgOf = {}, selected = null;
+const $ = id => document.getElementById(id);
+function tone(c) {
+  if (c == null || Math.abs(c) < FLAT) return "var(--sub)";
+  const t = Math.min(Math.abs(c) / MAX, 1), s = 28 + 72 * t;
+  if (c > 0) return `hsl(130,${s}%,${dark ? 68 - 13 * t : 42 - 12 * t}%)`;
+  return `hsl(0,${s}%,${dark ? 72 - 7 * t : 48 - 6 * t}%)`;
+}
+const fmtDay = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-US", {weekday: "short", month: "short", day: "numeric", timeZone: "UTC"});
+const fmtShort = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-US", {month: "short", day: "numeric", timeZone: "UTC"});
+function earn(x) {
+  const k = DATA.dates[x.s];
+  if (k && k.status === "confirmed" && k.date >= DATA.today) return {d: k.date, conf: true};
+  if (x.earn && x.earn >= DATA.today) return {d: x.earn, conf: false};
+  if (k && k.date >= DATA.today) return {d: k.date, conf: false};
+  return null;
+}
+function label(x) {
+  if (x.type !== "EQUITY" || x.pe == null) return {b: "none"};
+  const sp = DATA.sectorPE[x.sector];
+  if (!sp) return {b: "none"};
+  const r = x.pe / sp - 1;
+  return {b: r > .15 ? "over" : r < -.15 ? "under" : "neutral", r, sp};
+}
+function describe(s) {
+  const x = DATA.stocks.find(v => v.s === s);
+  const c = chgOf[s];
+  const move = c == null ? "No change data" : c > 0 ? `Up ${c.toFixed(2)}%` : c < 0 ? `Down ${Math.abs(c).toFixed(2)}%` : "Flat";
+  const parts = [`${s}: ${move}`];
+  if (x) {
+    if (x.price != null) parts.push("$" + Number(x.price).toFixed(2));
+    const l = label(x);
+    if (l.r != null) parts.push(`P/E ${x.pe} vs. ${x.sector} ${l.sp} (${l.r > 0 ? "+" : ""}${Math.round(l.r * 100)}%)`);
+    else if (x.type !== "EQUITY") parts.push("Fund or note, no earnings");
+    else parts.push("No usable P/E");
+    const e = earn(x);
+    if (e) parts.push(`Earnings ${fmtDay(e.d)}${e.conf ? "" : " (est.)"}`);
+    if (DATA.flags[s]) parts.push(DATA.flags[s]);
+  }
+  return parts.join(" · ");
+}
+function tk(s) {
+  const b = document.createElement("button");
+  b.className = "tk" + (selected === s ? " sel" : "");
+  b.style.color = tone(chgOf[s]);
+  b.textContent = s + (DATA.flags[s] ? "*" : "");
+  b.setAttribute("aria-label", describe(s));
+  b.onclick = () => { selected = selected === s ? null : s; draw(); };
+  return b;
+}
+function band(title, sub, body) {
+  const r = document.createElement("section");
+  r.className = "card band";
+  const h = document.createElement("div");
+  const t = document.createElement("div"); t.className = "ttl"; t.textContent = title; h.append(t);
+  if (sub) { const u = document.createElement("div"); u.className = "sub"; u.textContent = sub; h.append(u); }
+  r.append(h, body);
+  return r;
+}
+function draw() {
+  $("meta").textContent = `${DATA.stocks.length} tickers · prices as of ${DATA.priceAsOf}`;
+  const det = $("detail");
+  det.style.display = selected ? "block" : "none";
+  det.textContent = selected ? describe(selected) : "";
+  const rows = $("rows");
+  rows.replaceChildren();
+  const groups = {};
+  DATA.stocks.forEach(x => { const e = earn(x); if (e) (groups[e.d] ||= []).push({s: x.s, conf: e.conf}); });
+  const days = Object.keys(groups).sort();
+  const wrap = document.createElement("div");
+  wrap.className = "days";
+  days.slice(0, 8).forEach(d => {
+    const c = document.createElement("div");
+    c.className = "day";
+    const b = document.createElement("b"); b.textContent = fmtDay(d); c.append(b);
+    const w = document.createElement("div"); w.className = "chips";
+    groups[d].forEach(g => {
+      const p = document.createElement("span"); p.className = "pair"; p.append(tk(g.s));
+      if (!g.conf) { const e = document.createElement("span"); e.className = "est"; e.textContent = "est."; p.append(e); }
+      w.append(p);
+    });
+    c.append(w); wrap.append(c);
+  });
+  const later = days.slice(8).reduce((n, d) => n + groups[d].length, 0);
+  rows.append(band("Next earnings", later ? `${later} more by ${fmtShort(days[days.length - 1])}` : "", wrap));
+  [["over", "Overvalued", "P/E above sector"], ["neutral", "Neutral", "Close to sector"], ["under", "Undervalued", "P/E below sector"], ["none", "No label", "No usable P/E"]].forEach(([k, t, sub]) => {
+    const list = DATA.stocks.filter(x => label(x).b === k).sort((a, b) => (label(b).r ?? 0) - (label(a).r ?? 0));
+    const w = document.createElement("div"); w.className = "chips";
+    list.forEach(x => w.append(tk(x.s)));
+    rows.append(band(`${t} (${list.length})`, sub, w));
+  });
+  const tr = document.createElement("div"); tr.className = "chips";
+  DATA.trending.forEach(t => tr.append(tk(t.s)));
+  rows.append(band("Trending", "Yahoo's most-watched. Attention, not quality.", tr));
+  const flags = Object.entries(DATA.flags).filter(([s]) => DATA.stocks.some(x => x.s === s)).map(([s, m]) => `* ${s}: ${m}.`).join(" ");
+  const missing = DATA.missing && DATA.missing.length ? ` Yahoo didn't recognize: ${DATA.missing.join(", ")}.` : "";
+  $("foot").textContent = `Tap a ticker for details. Color: green up, red down, gray flat (under ${FLAT}%). Brighter means a bigger move, fully bright at ${MAX}%. Sector P/Es as of ${fmtShort(DATA.sectorAsOf)}. Labels compare trailing P/E with the sector, using a 15% cutoff, and ignore growth. Not a recommendation. Data from Yahoo Finance. ${flags}${missing}`;
+}
+async function load() {
+  const btn = $("refresh");
+  btn.disabled = true;
+  btn.textContent = "Loading...";
+  try {
+    const res = await fetch("data.json?t=" + Date.now(), {cache: "no-store"});
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    DATA = await res.json();
+    chgOf = Object.fromEntries(DATA.stocks.map(x => [x.s, x.chg]));
+    DATA.trending.forEach(t => { if (!(t.s in chgOf)) chgOf[t.s] = t.chg; });
+    const ageHours = (Date.now() - new Date(DATA.generatedAt)) / 36e5;
+    const err = $("error");
+    if (ageHours > 96) { err.style.display = "block"; err.textContent = `This data is ${Math.floor(ageHours / 24)} days old, so the updates may have stopped.`; }
+    else err.style.display = "none";
+    draw();
+  } catch (e) {
+    const err = $("error");
+    err.style.display = "block";
+    err.textContent = DATA ? "Couldn't refresh. Showing the last data loaded." : "Couldn't load the data. Check your connection and tap Refresh.";
+    if (!DATA) $("meta").textContent = "No data loaded";
+  }
+  btn.disabled = false;
+  btn.textContent = "Refresh";
+}
+$("refresh").onclick = load;
+const m = location.hostname.match(/^([^.]+)\.github\.io$/);
+const repo = location.pathname.split("/").filter(Boolean)[0];
+if (m && repo) { const a = $("edit"); a.href = `https://github.com/${m[1]}/${repo}/edit/main/watchlist.md`; a.style.display = "inline-flex"; }
+load();
+</script>
+</body>
+</html>

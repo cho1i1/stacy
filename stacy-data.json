@@ -1,0 +1,53 @@
+{
+  "sectorAsOf": "2026-09-30",
+  "sectorSource": "https://siblisresearch.com/data/sector-pe-earnings/",
+  "sectorPE": {
+    "Real Estate": 39.82,
+    "Information Technology": 38.50,
+    "Industrials": 28.72,
+    "Health Care": 24.56,
+    "Consumer Discretionary": 23.33,
+    "Consumer Staples": 22.86,
+    "Materials": 22.73,
+    "Communication Services": 18.14,
+    "Energy": 17.82,
+    "Utilities": 17.66,
+    "Financials": 15.67
+  },
+  "flags": {
+    "SHEL": "Yahoo's P/E may be wrong"
+  },
+  "dates": {
+    "CRWV": {"date": "2026-11-10", "status": "confirmed"},
+    "AMAT": {"date": "2026-11-12", "status": "confirmed"},
+    "CBRS": {"date": "2026-11-12", "status": "confirmed"},
+    "ALOY": {"date": "2026-11-16", "status": "estimated"},
+    "NVDA": {"date": "2026-11-17", "status": "confirmed"},
+    "WMT": {"date": "2026-11-19", "status": "estimated"},
+    "DKS": {"date": "2026-11-24", "status": "estimated"},
+    "KR": {"date": "2026-12-03", "status": "estimated"},
+    "LULU": {"date": "2026-12-03", "status": "estimated"},
+    "COST": {"date": "2026-12-10", "status": "estimated"},
+    "AVGO": {"date": "2026-12-10", "status": "estimated"},
+    "FCEL": {"date": "2026-12-16", "status": "estimated"},
+    "JPM": {"date": "2027-01-14", "status": "confirmed"},
+    "WFC": {"date": "2027-01-14", "status": "confirmed"},
+    "TSM": {"date": "2027-01-14", "status": "estimated"},
+    "IBKR": {"date": "2027-01-19", "status": "estimated"},
+    "NFLX": {"date": "2027-01-19", "status": "estimated"},
+    "INTC": {"date": "2027-01-21", "status": "estimated"},
+    "AXP": {"date": "2027-01-21", "status": "estimated"},
+    "CVX": {"date": "2027-01-22", "status": "estimated"},
+    "MSFT": {"date": "2027-01-27", "status": "estimated"},
+    "META": {"date": "2027-01-27", "status": "estimated"},
+    "TSLA": {"date": "2027-01-27", "status": "estimated"},
+    "AAPL": {"date": "2027-01-28", "status": "estimated"},
+    "LRCX": {"date": "2027-01-28", "status": "estimated"},
+    "SBUX": {"date": "2027-01-28", "status": "estimated"},
+    "XOM": {"date": "2027-01-29", "status": "estimated"},
+    "GOOG": {"date": "2027-02-03", "status": "estimated"},
+    "PEP": {"date": "2027-02-03", "status": "estimated"},
+    "AMZN": {"date": "2027-02-04", "status": "estimated"},
+    "SHEL": {"date": "2027-02-05", "status": "estimated"}
+  }
+}
